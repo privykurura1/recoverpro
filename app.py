@@ -10,6 +10,8 @@ IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp']
 VIDEO_EXTENSIONS = ['.mp4', '.mkv', '.avi', '.mov', '.flv']
 DOCUMENT_EXTENSIONS = ['.pdf', '.doc', '.docx', '.txt', '.xls', '.ppt']
 
+# Default path for recovery in Android Downloads folder
+DEFAULT_ANDROID_DOWNLOAD_PATH = "/storage/emulated/0/Download"
 
 # Helper function to scan files
 def scan_deleted_files(storage_path):
@@ -71,20 +73,28 @@ def recover_file():
         return jsonify({"error": "No data provided."}), 400
 
     file_path = data.get('file_path')
-    recovery_path = data.get('recovery_path')
+    recovery_path = data.get('recovery_path', DEFAULT_ANDROID_DOWNLOAD_PATH)  # Use default if not provided
 
+    # Check if the file exists
     if not file_path or not os.path.exists(file_path):
         return jsonify({"error": f"File '{file_path}' does not exist."}), 400
 
-    if not recovery_path:
-        return jsonify({"error": "Recovery path is required."}), 400
+    # Check if the recovery path is valid
+    if not os.path.exists(recovery_path):
+        return jsonify({"error": f"Recovery path '{recovery_path}' does not exist."}), 400
 
     try:
+        # Make sure recovery path exists
         if not os.path.exists(recovery_path):
             os.makedirs(recovery_path)
+
+        # Define the recovered file path
         recovered_file = os.path.join(recovery_path, os.path.basename(file_path))
+
+        # Move the file to the recovery path (e.g., Downloads folder)
         os.rename(file_path, recovered_file)
         return jsonify({"status": "success", "recovered_file": recovered_file})
+
     except Exception as e:
         print(f"Error recovering file: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
